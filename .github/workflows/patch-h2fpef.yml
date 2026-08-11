@@ -1,0 +1,32 @@
+name: Integrate detailed H2FPEF
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/patch-h2fpef.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replace H2FPEF UI and connect module
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('calculators.html')
+          s=p.read_text()
+          new='''<section class="calc" id="h2fpef"><div class="calc-head"><div><h2>H₂FPEF</h2><p class="desc">Вероятность СН с сохранённой ФВ (HFpEF) у пациента с необъяснимой одышкой. Максимум 9 баллов.</p></div><span class="badge">HFpEF</span></div><p class="interpret">Введите реальные параметры пациента. Калькулятор автоматически рассчитает ИМТ, начислит баллы по 6 критериям и покажет вклад каждого критерия.</p><div class="fields"><div class="field"><label>Возраст, лет</label><p class="hint">Возраст &gt;60 лет = +1 балл.</p><input id="h2AgeInput" type="number" min="18" max="110"></div><div class="field"><label>Рост, см</label><p class="hint">Используется для автоматического расчёта ИМТ.</p><input id="h2Height" type="number" min="100" max="230"></div><div class="field"><label>Масса тела, кг</label><p class="hint">ИМТ &gt;30 кг/м² = +2 балла.</p><input id="h2Weight" type="number" min="30" max="300" step="0.1"></div><div class="field"><label>Антигипертензивные препараты, количество</label><p class="hint">Приём ≥2 антигипертензивных препаратов = +1 балл.</p><input id="h2Meds" type="number" min="0" max="10" step="1"></div><div class="field"><label>Фибрилляция предсердий</label><p class="hint">Пароксизмальная, персистирующая или постоянная ФП = +3 балла.</p><select id="h2AfInput"><option value="0">Нет — 0</option><option value="1">Есть — +3</option></select></div><div class="field"><label>СДЛА, мм рт. ст.</label><p class="hint">Систолическое давление в лёгочной артерии &gt;35 мм рт. ст. = +1 балл.</p><input id="h2Pasp" type="number" min="10" max="150" step="1"></div><div class="field"><label>Среднее E/e′</label><p class="hint">E/e′ &gt;9 = +1 балл.</p><input id="h2EeInput" type="number" min="1" max="50" step="0.1"></div></div><div class="actions"><button onclick="h2fpefDetailed()">Рассчитать H₂FPEF</button><button class="clear" onclick="clearCalc('h2fpef','h2Res')">Очистить</button></div><div id="h2Res" class="res">Введите параметры пациента.</div><p class="interpret"><b>Интерпретация:</b> 0–1 балл — низкая вероятность СНсФВ; 2–5 — промежуточная (может потребоваться дополнительная функциональная оценка); 6–9 — высокая вероятность СНсФВ (&gt;90%).</p><script src="h2fpef.js"></script><script>function h2fpefDetailed(){const age=v('h2AgeInput'),height=v('h2Height'),weight=v('h2Weight'),meds=v('h2Meds'),pasp=v('h2Pasp'),ee=v('h2EeInput'),af=document.getElementById('h2AfInput').value==='1';if(!age||!height||!weight||isNaN(meds)||!pasp||!ee)return h2Res.innerHTML='Заполните все параметры пациента.';const r=calculateH2FPEF({age:age,weightKg:weight,heightCm:height,antihypertensives:meds,atrialFibrillation:af,pasp:pasp,ee:ee});const rows=r.components.map(x=>x[0]+' — <b>+'+x[1]+'</b>').join('<br>');h2Res.innerHTML='<b>H₂FPEF: '+r.score+'/9 — '+r.category+'</b><br>ИМТ: '+r.bmi.toFixed(1)+' кг/м²<br><br>'+rows+'<br><br><b>Интерпретация:</b> '+r.interpretation}</script></section>'''
+          pattern=r'<section class="calc" id="h2fpef">.*?</section>'
+          s2,n=re.subn(pattern,new,s,count=1,flags=re.S)
+          if n!=1: raise SystemExit('H2FPEF section not found exactly once')
+          p.write_text(s2)
+          PY
+      - name: Commit integrated calculator
+        run: |
+          git config user.name "CardioShort Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add calculators.html
+          git commit -m "Integrate detailed H2FPEF calculator into calculators page"
+          git push
