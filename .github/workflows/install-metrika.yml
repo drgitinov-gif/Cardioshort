@@ -1,0 +1,46 @@
+name: Install Yandex Metrica
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/install-metrika.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add Metrica loader to all HTML pages
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          marker = '<script src="metrika.js"></script>'
+          changed = 0
+          for p in Path('.').glob('*.html'):
+              text = p.read_text(encoding='utf-8')
+              if marker in text:
+                  continue
+              if '</head>' in text:
+                  text = text.replace('</head>', marker + '</head>', 1)
+                  p.write_text(text, encoding='utf-8')
+                  changed += 1
+          print(f'Updated {changed} HTML files')
+          PY
+      - name: Commit changes
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No changes needed'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add '*.html'
+          git commit -m 'Add Yandex Metrica to all site pages'
+          git push
