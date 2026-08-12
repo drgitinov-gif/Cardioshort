@@ -1,0 +1,40 @@
+name: Patch Geneva and PRECISE-DAPT
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-geneva-precise.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch calculators.html
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('calculators.html')
+          s=p.read_text(encoding='utf-8')
+          precise='''<section class="calc" id="precise"><div class="calc-head"><div><h2>PRECISE-DAPT</h2><p class="desc">Оценка риска кровотечения на фоне двойной антитромбоцитарной терапии после ЧКВ.</p></div><span class="badge">ДАТТ</span></div><p class="interpret">Введите 5 параметров исходной шкалы: возраст, гемоглобин, лейкоциты, клиренс креатинина и наличие предшествующего спонтанного кровотечения, потребовавшего медицинской помощи.</p><div class="fields"><div class="field"><label>Возраст, лет</label><input id="prAge" type="number" min="18" max="110"></div><div class="field"><label>Гемоглобин, г/л</label><input id="prHb" type="number" min="50" max="220" step="1"></div><div class="field"><label>Лейкоциты, ×10⁹/л</label><input id="prWbc" type="number" min="1" max="50" step="0.1"></div><div class="field"><label>Клиренс креатинина, мл/мин</label><input id="prCrCl" type="number" min="0" max="250" step="1"><p class="hint">Используйте рассчитанный клиренс креатинина, а не концентрацию креатинина сыворотки.</p></div><div class="field"><label>Предшествующее спонтанное кровотечение</label><select id="prBleed"><option value="0">Нет</option><option value="1">Да, требовало медицинской помощи</option></select></div></div><div class="actions"><button onclick="preciseDapt()">Рассчитать PRECISE-DAPT</button><button class="clear" onclick="clearCalc('precise','prRes')">Очистить</button></div><div id="prRes" class="res">Введите параметры пациента.</div><p class="interpret"><b>Интерпретация:</b> PRECISE-DAPT ≥25 — высокий риск кровотечения; следует рассматривать более короткую продолжительность ДАТТ с учётом ишемического риска и клинической ситуации. При результате &lt;25 высокий риск по порогу PRECISE-DAPT не определяется.</p></section>'''
+          geneva='''<section class="calc" id="geneva"><div class="calc-head"><div><h2>Revised Geneva</h2><p class="desc">Стандартизированная оценка клинической предтестовой вероятности ТЭЛА.</p></div><span class="badge">ТЭЛА</span></div><p class="interpret">Отметьте клинические признаки и факторы риска. Калькулятор показывает одновременно трёхуровневую и двухуровневую интерпретацию Revised Geneva.</p><div class="fields"><div class="field"><label>Критерии</label><label class="check"><input id="geAge" type="checkbox">Возраст &gt;65 лет — +1</label><label class="check"><input id="gePrev" type="checkbox">Предшествующие ТГВ или ТЭЛА — +3</label><label class="check"><input id="geSurg" type="checkbox">Операция или перелом в течение последнего месяца — +2</label><label class="check"><input id="geCa" type="checkbox">Активное злокачественное новообразование — +2</label><label class="check"><input id="gePain" type="checkbox">Односторонняя боль в нижней конечности — +3</label><label class="check"><input id="geHem" type="checkbox">Кровохарканье — +2</label><label class="check"><input id="geDvt" type="checkbox">Боль при пальпации глубоких вен и односторонний отёк — +4</label></div><div class="field"><label>ЧСС, уд/мин</label><select id="geHr"><option value="0">&lt;75 — 0</option><option value="3">75–94 — +3</option><option value="5">≥95 — +5</option></select></div></div><div class="actions"><button onclick="geneva()">Рассчитать Revised Geneva</button><button class="clear" onclick="clearCalc('geneva','geRes')">Очистить</button></div><div id="geRes" class="res">Введите параметры пациента.</div><p class="interpret"><b>Трёхуровневая модель:</b> 0–3 — низкая, 4–10 — промежуточная, ≥11 — высокая вероятность ТЭЛА.<br><b>Двухуровневая модель:</b> 0–5 — ТЭЛА маловероятна; ≥6 — ТЭЛА вероятна.</p></section>'''
+          s,n1=re.subn(r'<section class="calc" id="precise">.*?</section>', precise, s, count=1, flags=re.S)
+          s,n2=re.subn(r'<section class="calc" id="geneva">.*?</section>', geneva, s, count=1, flags=re.S)
+          if n1!=1 or n2!=1:
+              raise SystemExit(f'section replace failed precise={n1} geneva={n2}')
+          old=r'function geneva\(\)\{.*?\}function pesi\(\)'
+          new='''function preciseDapt(){const age=v('prAge'),hb=v('prHb'),wbc=v('prWbc'),crcl=v('prCrCl'),bleed=+document.getElementById('prBleed').value;if(!age||!hb||!wbc||isNaN(crcl))return prRes.innerHTML='Заполните все 5 параметров.';const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));const agePts=19*(clamp(age,50,90)-50)/40;const hbPts=15*(120-clamp(hb,100,120))/20;const crPts=25*(100-clamp(crcl,0,100))/100;const wbcPts=15*(clamp(wbc,5,20)-5)/15;const bleedPts=bleed?26:0;const score=Math.max(0,Math.min(100,Math.round(agePts+hbPts+crPts+wbcPts+bleedPts)));const cat=score>=25?'ВЫСОКИЙ риск кровотечения':'высокий риск по порогу не определяется';prRes.innerHTML='<b>PRECISE-DAPT: '+score+' баллов — '+cat+'</b><br><br>Возраст: '+agePts.toFixed(1)+'; гемоглобин: '+hbPts.toFixed(1)+'; клиренс креатинина: '+crPts.toFixed(1)+'; лейкоциты: '+wbcPts.toFixed(1)+'; предшествующее кровотечение: '+bleedPts+'.<br><br>'+(score>=25?'<b>≥25:</b> высокий риск кровотечения; более короткая ДАТТ может быть предпочтительна при соответствующей клинической ситуации.':'<b>&lt;25:</b> высокий риск кровотечения по порогу PRECISE-DAPT не определяется; длительность ДАТТ определяют с учётом ишемического и геморрагического риска.')}function geneva(){let s=(c('geAge')?1:0)+(c('gePrev')?3:0)+(c('geSurg')?2:0)+(c('geCa')?2:0)+(c('gePain')?3:0)+(c('geHem')?2:0)+(c('geDvt')?4:0)+v('geHr');let three=s<=3?'низкая':s<=10?'промежуточная':'высокая';let two=s<=5?'ТЭЛА маловероятна':'ТЭЛА вероятна';geRes.innerHTML='<b>Revised Geneva: '+s+' баллов</b><br>Трёхуровневая модель: <b>'+three+' вероятность</b>.<br>Двухуровневая модель: <b>'+two+'</b>.'}function pesi()'''
+          s,n3=re.subn(old,new,s,count=1,flags=re.S)
+          if n3!=1:
+              raise SystemExit('JS replace failed')
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add calculators.html
+          git diff --cached --quiet || git commit -m "Fix Geneva and activate PRECISE-DAPT"
+          git push
