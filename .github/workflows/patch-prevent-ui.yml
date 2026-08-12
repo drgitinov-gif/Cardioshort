@@ -1,0 +1,29 @@
+name: Integrate PREVENT calculator UI
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch PREVENT section
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('calculators.html')
+          s=p.read_text()
+          s=s.replace('<a href="#ascvd">ASCVD/PREVENT</a>','<a href="#ascvd">PREVENT</a>')
+          s=s.replace('ASCVD/PREVENT','PREVENT')
+          s=s.replace('ASCVD / PREVENT','PREVENT')
+          # Rename visible heading variants while preserving section id for existing anchors.
+          s=s.replace('<h2>ASCVD/PREVENT</h2>','<h2>PREVENT</h2>').replace('<h2>ASCVD / PREVENT</h2>','<h2>PREVENT</h2>')
+          p.write_text(s)
+          PY
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add calculators.html
+          git diff --cached --quiet || git commit -m "Rename ASCVD/PREVENT calculator to PREVENT"
+          git push
