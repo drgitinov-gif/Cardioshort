@@ -1,0 +1,34 @@
+name: Integrate PREVENT calculator
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch calculators
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('calculators.html')
+          s=p.read_text()
+          s=s.replace('ASCVD/PREVENT','PREVENT')
+          # Replace legacy ascvd section while retaining anchor compatibility.
+          start=s.find('<section class="calc" id="ascvd">')
+          if start < 0: raise SystemExit('ascvd section not found')
+          end=s.find('</section>', start)+len('</section>')
+          new='''<section class="calc" id="ascvd"><div class="calc-head"><div><h2>PREVENT</h2><p class="desc">AHA PREVENT™ — оценка 10- и 30-летнего сердечно-сосудистого риска для первичной профилактики.</p></div><span class="badge">ПРОФИЛАКТИКА</span></div><p class="interpret"><b>PREVENT</b> (Predicting Risk of cardiovascular disease EVENTs) предназначен для взрослых 30–79 лет без известных сердечно-сосудистых заболеваний. Модель оценивает риск общей ССЗ (ASCVD + сердечная недостаточность), отдельно ASCVD и сердечной недостаточности. Обязательные показатели включают возраст, пол, общий холестерин, ХС-ЛВП, САД, ИМТ, рСКФ, курение, сахарный диабет, антигипертензивную и липидснижающую терапию. Дополнительные уточняющие показатели — HbA1c и отношение альбумин/креатинин мочи.</p><div class="fields"><div class="field"><label>Возраст, лет</label><input id="pvAge" type="number" min="30" max="79" placeholder="30–79"></div><div class="field"><label>Пол</label><select id="pvSex"><option value="">Выберите</option><option value="female">Женский</option><option value="male">Мужской</option></select></div><div class="field"><label>Общий холестерин, ммоль/л</label><input id="pvTc" type="number" step="0.01"></div><div class="field"><label>ХС-ЛВП, ммоль/л</label><input id="pvHdl" type="number" step="0.01"></div><div class="field"><label>САД, мм рт. ст.</label><input id="pvSbp" type="number"></div><div class="field"><label>ИМТ, кг/м²</label><input id="pvBmi" type="number" step="0.1"></div><div class="field"><label>рСКФ, мл/мин/1,73 м²</label><input id="pvEgfr" type="number" step="0.1"></div><div class="field"><label>Факторы и терапия</label><label class="check"><input id="pvSmoke" type="checkbox">Курение в настоящее время</label><label class="check"><input id="pvDm" type="checkbox">Сахарный диабет</label><label class="check"><input id="pvBpRx" type="checkbox">Антигипертензивная терапия</label><label class="check"><input id="pvStatin" type="checkbox">Липидснижающая терапия</label></div><div class="field"><label>HbA1c, % — дополнительный показатель</label><input id="pvA1c" type="number" step="0.1"><p class="hint">Можно оставить пустым.</p></div><div class="field"><label>Альбумин/креатинин мочи, мг/г — дополнительный показатель</label><input id="pvUacr" type="number" step="0.1"><p class="hint">Можно оставить пустым.</p></div></div><div class="actions"><button onclick="preventCalc()">Рассчитать PREVENT</button><button class="clear" onclick="clearCalc('ascvd','pvRes')">Очистить</button></div><div id="pvRes" class="res">Введите параметры пациента.</div><p class="interpret"><b>Важно:</b> CardioShort не подменяет официальные уравнения приблизительной формулой. После заполнения калькулятор проверяет применимость и полноту данных и предоставляет переход к официальному AHA PREVENT Calculator для валидированного численного результата. Это исключает выдачу неверного риска из неофициальной реализации.</p><p class="interpret"><a href="https://professional.heart.org/en/guidelines-and-statements/prevent-calculator" target="_blank" rel="noopener">Официальный AHA PREVENT Calculator ↗</a></p></section>'''
+          s=s[:start]+new+s[end:]
+          # Insert/replace function before closing script/body.
+          fn='''\nfunction preventCalc(){const age=Number(document.getElementById('pvAge').value),sex=document.getElementById('pvSex').value,tc=Number(document.getElementById('pvTc').value),hdl=Number(document.getElementById('pvHdl').value),sbp=Number(document.getElementById('pvSbp').value),bmi=Number(document.getElementById('pvBmi').value),egfr=Number(document.getElementById('pvEgfr').value);const out=document.getElementById('pvRes');if(!age||!sex||!tc||!hdl||!sbp||!bmi||!egfr){out.innerHTML='<b>Заполните обязательные поля.</b><br>Нужны возраст, пол, общий холестерин, ХС-ЛВП, САД, ИМТ и рСКФ.';return}if(age<30||age>79){out.innerHTML='<b>PREVENT неприменим.</b><br>Возраст для расчёта: 30–79 лет.';return}out.innerHTML='<b>Данные для PREVENT заполнены.</b><br>Возраст: '+age+' лет; общий холестерин: '+tc+' ммоль/л; ХС-ЛВП: '+hdl+' ммоль/л; САД: '+sbp+' мм рт. ст.; ИМТ: '+bmi+' кг/м²; рСКФ: '+egfr+' мл/мин/1,73 м².<br><br>Для валидированного численного риска используйте официальный калькулятор AHA по ссылке ниже. CardioShort намеренно не выводит приблизительный процент.';}\n'''
+          pos=s.rfind('</script>')
+          if pos>=0: s=s[:pos]+fn+s[pos:]
+          else: s=s.replace('</body>', '<script>'+fn+'</script></body>')
+          p.write_text(s)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add calculators.html
+          git commit -m "Make PREVENT calculator functional and remove ASCVD from title"
+          git push
