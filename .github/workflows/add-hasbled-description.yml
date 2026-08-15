@@ -1,0 +1,37 @@
+name: Add HAS-BLED description
+on:
+  push:
+    paths:
+      - '.github/workflows/add-hasbled-description.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add renal and liver criteria description
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('calculators.html')
+          s=p.read_text()
+          marker='<section class="calc" id="hasbled">'
+          i=s.find(marker)
+          if i<0: raise SystemExit('HAS-BLED section not found')
+          j=s.find('<div class="fields">', i)
+          if j<0: raise SystemExit('HAS-BLED fields not found')
+          text='''<div class="interpret" style="margin:12px 0 16px"><p><b>Критерии нарушения функции почек (1 балл):</b></p><ul><li>Проведение постоянного гемодиализа.</li><li>Перенесённая операция по трансплантации почки.</li><li>Уровень креатинина в сыворотке крови выше <b>200 мкмоль/л</b> (более 2,26 мг/дл).</li></ul><p><b>Критерии нарушения функции печени (1 балл):</b></p><ul><li>Наличие тяжёлого хронического заболевания печени, например <b>цирроза</b>.</li><li>Выраженные лабораторные изменения: общий билирубин ≥ <b>2 верхних границ нормы</b> в сочетании с повышением АЛТ, АСТ или щелочной фосфатазы > <b>3 верхних границ нормы</b>.</li></ul></div>'''
+          # avoid duplicate insertion
+          segment=s[i:j]
+          if 'Критерии нарушения функции почек' not in segment:
+              s=s[:j]+text+s[j:]
+              p.write_text(s)
+          PY
+      - name: Commit changes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add calculators.html
+          git diff --cached --quiet || git commit -m 'Expand HAS-BLED renal and liver criteria'
+          git push
