@@ -1,0 +1,29 @@
+name: Add DAPT prior PCI MI description
+on:
+  push:
+    paths:
+      - '.github/workflows/add-dapt-prior-pci-description.yml'
+permissions:
+  contents: write
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update DAPT description
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('calculators.html')
+          s=p.read_text()
+          old='<p class="interpret"><b>Пояснение:</b> Если стентирование проводилось на фоне развившегося инфаркта (а не планово по поводу стабильной стенокардии), в калькуляторе шкалы DAPT выбирается пункт <i>«Myocardial infarction at presentation»</i> (Инфаркт при поступлении/презентации).</p>'
+          new=old+'<p class="interpret"><b>Предшествующее ЧКВ или инфаркт:</b> под этим пунктом понимается любое ранее перенесенное чрескожное коронарное вмешательство или инфаркт миокарда, которые случились у пациента <b>до индексного (текущего) вмешательства</b>. Если в анамнезе никогда не было ЧКВ/стентирования или инфаркта миокарда, а текущее ЧКВ — первое в жизни пациента, этот пункт оценивается как «нет» (0 баллов).</p>'
+          if old not in s:
+              raise SystemExit('Target DAPT paragraph not found')
+          p.write_text(s.replace(old,new,1))
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add calculators.html
+          git commit -m "Clarify prior PCI or MI in DAPT score"
+          git push
