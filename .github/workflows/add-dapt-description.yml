@@ -1,0 +1,32 @@
+name: Add DAPT description
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add clinical clarification
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('calculators.html')
+          s=p.read_text()
+          text='Если стентирование проводилось на фоне развившегося инфаркта (а не планово по поводу стабильной стенокардии), в калькуляторе шкалы DAPT выбирается пункт <i>«Myocardial infarction at presentation»</i> (Инфаркт при поступлении/презентации).'
+          if text not in s:
+              marker='<section class="calc" id="dapt"><div class="calc-head"><div><h2>DAPT score</h2><p class="desc">Оценка соотношения пользы и риска продления ДАТТ.</p></div><span class="badge">ДАТТ</span></div>'
+              if marker not in s:
+                  raise SystemExit('DAPT marker not found')
+              s=s.replace(marker, marker+'<p class="interpret"><b>Пояснение:</b> '+text+'</p>', 1)
+              p.write_text(s)
+          PY
+      - name: Commit change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add calculators.html
+          git diff --cached --quiet || (git commit -m "Clarify MI at presentation in DAPT score" && git push)
