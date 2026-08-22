@@ -18,8 +18,8 @@ jobs:
           from pathlib import Path
           p=Path('supraventricular-tachycardia.html')
           s=p.read_text(encoding='utf-8')
-          s=s.replace('transform:translateX(-190px)', 'transform:translateX(-220px)')
-          s=s.replace('@media(max-width:1200px){.back,.back:visited{transform:translateX(-70px)}}', '@media(max-width:1200px){.back,.back:visited{transform:translateX(-90px)}}')
+          s=s.replace('transform:translateX(-220px)', 'transform:translateX(-250px)')
+          s=s.replace('@media(max-width:1200px){.back,.back:visited{transform:translateX(-90px)}}', '@media(max-width:1200px){.back,.back:visited{transform:translateX(-110px)}}')
           p.write_text(s,encoding='utf-8')
           PY
       - name: Commit changes
@@ -28,5 +28,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add supraventricular-tachycardia.html
-          git commit -m 'Move SVT back button further left'
+          git commit -m 'Move SVT back button even further left'
           git push
