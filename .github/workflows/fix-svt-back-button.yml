@@ -12,26 +12,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Patch SVT back button styles
+      - name: Move SVT back button further left
         run: |
           python - <<'PY'
           from pathlib import Path
           p=Path('supraventricular-tachycardia.html')
           s=p.read_text(encoding='utf-8')
-          old='.back,.back:visited{display:inline-flex;align-items:center;margin-bottom:24px;color:#1768ae;text-decoration:none;font-size:18px;font-weight:750;padding:10px 14px;border:2px solid #2f80ed;border-radius:10px;background:#fff;line-height:1.2}'
-          new='.back,.back:visited{display:inline-flex;align-items:center;margin-bottom:24px;color:#1768ae;text-decoration:none;font-size:18px;font-weight:750;padding:10px 14px;border:2px solid #2f80ed;border-radius:10px;background:#fff;line-height:1.2;position:sticky;top:84px;z-index:9;transform:translateX(-190px);box-shadow:0 4px 14px rgba(13,27,42,.08)}'
-          if old in s:
-              s=s.replace(old,new,1)
-          elif 'position:sticky;top:84px' not in s:
-              raise SystemExit('Expected .back style not found; no changes made')
-          mobile='.back{font-size:16px;padding:9px 12px}'
-          mobile_new='.back{font-size:16px;padding:9px 12px;top:74px;transform:none}'
-          if mobile in s:
-              s=s.replace(mobile,mobile_new,1)
-          if '@media(max-width:1200px){.back,.back:visited{transform:translateX(-70px)}}' not in s:
-              marker='footer{text-align:center;color:var(--muted);padding:26px;font-size:12px}'
-              add=marker+'@media(max-width:1200px){.back,.back:visited{transform:translateX(-70px)}}@media(max-width:900px){.back,.back:visited{transform:none}}'
-              s=s.replace(marker,add,1)
+          s=s.replace('transform:translateX(-190px)', 'transform:translateX(-220px)')
+          s=s.replace('@media(max-width:1200px){.back,.back:visited{transform:translateX(-70px)}}', '@media(max-width:1200px){.back,.back:visited{transform:translateX(-90px)}}')
           p.write_text(s,encoding='utf-8')
           PY
       - name: Commit changes
@@ -40,5 +28,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add supraventricular-tachycardia.html
-          git commit -m 'Fix sticky back button on SVT page'
+          git commit -m 'Move SVT back button further left'
           git push
