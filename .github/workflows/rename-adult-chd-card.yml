@@ -1,0 +1,32 @@
+name: Rename adult CHD card
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rename-adult-chd-card.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rename VPS card to adult VPS
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('data-s="впс врожденные пороки сердца врождённые пороки сердца"','data-s="впс у взрослых врожденные пороки сердца у взрослых врождённые пороки сердца у взрослых achd"')
+          s=s.replace('<h3>ВПС</h3><p>Врожденные пороки сердца:<br>диагностика и тактика</p>','<h3>ВПС у взрослых</h3><p>Диагностика, гемодинамика,<br>лечение и наблюдение</p>')
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit changes
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Rename VPS section to VPS in adults'
+          git push
