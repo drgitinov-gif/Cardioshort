@@ -1,0 +1,52 @@
+name: Patch SVT sticky back button
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-svt-sticky-back.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch SVT back button CSS
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('supraventricular-tachycardia.html')
+          s = p.read_text(encoding='utf-8')
+          old = ".back,.back:visited{display:inline-flex;align-items:center;margin-bottom:24px;color:#1768ae;text-decoration:none;font-size:18px;font-weight:750;padding:10px 14px;border:2px solid #2f80ed;border-radius:10px;background:#fff;line-height:1.2}"
+          new = ".back,.back:visited{display:inline-flex;align-items:center;margin-bottom:24px;color:#1768ae;text-decoration:none;font-size:18px;font-weight:750;padding:10px 14px;border:2px solid #2f80ed;border-radius:10px;background:#fff;line-height:1.2;position:sticky;top:84px;z-index:9;transform:translateX(-190px);box-shadow:0 4px 14px rgba(13,27,42,.08)}"
+          if new in s:
+              print('Already patched')
+          elif old in s:
+              s = s.replace(old, new, 1)
+              mobile_old = ".back{font-size:16px;padding:9px 12px}"
+              mobile_new = ".back{font-size:16px;padding:9px 12px;top:74px;transform:none}"
+              s = s.replace(mobile_old, mobile_new, 1)
+              marker = "footer{text-align:center;color:var(--muted);padding:26px;font-size:12px}@media(max-width:720px)"
+              repl = "footer{text-align:center;color:var(--muted);padding:26px;font-size:12px}@media(max-width:1200px){.back,.back:visited{transform:translateX(-70px)}}@media(max-width:900px){.back,.back:visited{transform:none}}@media(max-width:720px)"
+              s = s.replace(marker, repl, 1)
+              p.write_text(s, encoding='utf-8')
+              print('Patched')
+          else:
+              raise SystemExit('Expected back-button CSS was not found; aborting safely')
+          PY
+      - name: Commit patch
+        run: |
+          if git diff --quiet; then
+            echo 'No changes needed'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add supraventricular-tachycardia.html
+          git commit -m 'Keep SVT back button visible while scrolling'
+          git push
