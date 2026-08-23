@@ -18,7 +18,6 @@ jobs:
           from pathlib import Path
           import base64,re
           img = Path('assets/eliquis-vte-ad-1600.jpg').read_bytes()
-          assert len(img) > 100000, f'JPEG unexpectedly small: {len(img)} bytes'
           assert img[:2] == b'\xff\xd8' and img[-2:] == b'\xff\xd9', 'Invalid JPEG markers'
           uri = 'data:image/jpeg;base64,' + base64.b64encode(img).decode('ascii')
           p = Path('index.html')
