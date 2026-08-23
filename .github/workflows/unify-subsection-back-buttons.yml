@@ -1,17 +1,17 @@
 name: Unify subsection back buttons
+
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/unify-subsection-back-buttons.yml'
   workflow_dispatch:
+
 permissions:
   contents: write
+
 jobs:
   patch:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Apply sticky left back button to subsection pages
         run: |
           python - <<'PY'
@@ -32,11 +32,13 @@ jobs:
             'left-ventricular-noncompaction.html',
           ]
 
-          override = '''\n<style id="cardioshort-sticky-back-override">
-@media (min-width:1201px){a.back{position:sticky!important;top:84px!important;z-index:60!important;transform:translateX(-280px)!important;box-shadow:0 4px 14px rgba(13,27,42,.08)!important}}
-@media (min-width:901px) and (max-width:1200px){a.back{position:sticky!important;top:84px!important;z-index:60!important;transform:translateX(-130px)!important;box-shadow:0 4px 14px rgba(13,27,42,.08)!important}}
-@media (max-width:900px){a.back{position:sticky!important;top:74px!important;z-index:60!important;transform:none!important;box-shadow:0 4px 14px rgba(13,27,42,.08)!important}}
-</style>\n'''
+          override = '''
+          <style id="cardioshort-sticky-back-override">
+          @media (min-width:1201px){a.back{position:sticky!important;top:84px!important;z-index:60!important;transform:translateX(-280px)!important;box-shadow:0 4px 14px rgba(13,27,42,.08)!important}}
+          @media (min-width:901px) and (max-width:1200px){a.back{position:sticky!important;top:84px!important;z-index:60!important;transform:translateX(-130px)!important;box-shadow:0 4px 14px rgba(13,27,42,.08)!important}}
+          @media (max-width:900px){a.back{position:sticky!important;top:74px!important;z-index:60!important;transform:none!important;box-shadow:0 4px 14px rgba(13,27,42,.08)!important}}
+          </style>
+          '''
 
           for name in files:
             p = Path(name)
@@ -45,11 +47,17 @@ jobs:
             s = p.read_text(encoding='utf-8')
             if 'class="back"' not in s and "class='back'" not in s:
               continue
-            s = re.sub(r'\n?<style id="cardioshort-sticky-back-override">.*?</style>\n?', '\n', s, flags=re.S)
+            s = re.sub(
+              r'\n?<style id="cardioshort-sticky-back-override">.*?</style>\n?',
+              '\n',
+              s,
+              flags=re.S,
+            )
             if '</head>' in s:
               s = s.replace('</head>', override + '</head>', 1)
               p.write_text(s, encoding='utf-8')
           PY
+
       - name: Commit changes
         run: |
           if git diff --quiet; then exit 0; fi
