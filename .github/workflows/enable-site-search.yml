@@ -1,0 +1,38 @@
+name: Enable full-site search
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/enable-site-search.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch homepage search
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          css='''.search{position:relative}.search-results{position:absolute;left:0;right:0;top:46px;display:none;max-height:520px;overflow-y:auto;background:#fff;border:1px solid var(--l);border-radius:12px;box-shadow:0 16px 36px rgba(13,27,42,.18);z-index:1000}.search-results.show{display:block}.search-result{display:block;padding:13px 14px;border-bottom:1px solid var(--l);text-decoration:none;color:var(--t)}.search-result:last-child{border-bottom:0}.search-result:hover{background:#f7f9fc}.search-result b{display:block;font-size:13px;margin-bottom:4px}.search-result span{display:block;color:var(--m);font-size:11px;line-height:1.45}.search-empty{padding:15px;color:var(--m);font-size:12px}\n'''
+          marker='.search input{border:0;outline:0;width:100%;font-size:13px}'
+          if css.strip() not in s:
+              s=s.replace(marker, marker+'\n'+css)
+          old="<script>const q=document.getElementById('q'),cards=[...document.querySelectorAll('.topic')];q.addEventListener('input',()=>{let x=q.value.toLowerCase().trim();cards.forEach(c=>c.style.display=!x||c.dataset.s.includes(x)?'':'none')});document.querySelectorAll('.chips button').forEach(b=>b.onclick=()=>{q.value=b.textContent;q.dispatchEvent(new Event('input'));q.focus()});</script>"
+          s=s.replace(old,'<script src="site-search.js"></script>')
+          if '<script src="site-search.js"></script>' not in s:
+              s=s.replace('</body>','<script src="site-search.js"></script>\n</body>')
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit changes
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Make homepage search work across CardioShort'
+          git push
