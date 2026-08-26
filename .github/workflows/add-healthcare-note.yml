@@ -1,0 +1,37 @@
+name: Add healthcare professional notice
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/add-healthcare-note.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add shared notice script to HTML pages
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          changed=[]
+          for p in Path('.').glob('*.html'):
+              s=p.read_text(encoding='utf-8')
+              if 'healthcare-note.js' in s:
+                  continue
+              if '</body>' in s:
+                  s=s.replace('</body>','<script src="healthcare-note.js"></script>\n</body>')
+                  p.write_text(s,encoding='utf-8')
+                  changed.append(str(p))
+          print('Updated',len(changed),'HTML files')
+          PY
+      - name: Commit changes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add '*.html'
+          git diff --cached --quiet && exit 0
+          git commit -m 'Показывать уведомление для специалистов во всех разделах'
+          git push
