@@ -1,0 +1,39 @@
+name: SEO scales in cardiology
+
+on:
+  push:
+    paths:
+      - '.github/workflows/seo-scales-cardiology.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update SEO metadata
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('calculators.html')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace(
+            '<title>Медицинские калькуляторы: СКФ, CKD-EPI, GRACE, CHA₂DS₂-VASc, PESI — CardioShort</title>',
+            '<title>Шкалы в кардиологии и медицинские калькуляторы — CardioShort</title>'
+          )
+          s = s.replace(
+            '<meta name="description" content="Расчёт СКФ онлайн по CKD-EPI 2021 и MDRD, клиренс креатинина по Cockcroft–Gault, а также GRACE, CHA₂DS₂-VASc, HAS-BLED, PESI, PRECISE-DAPT и другие кардиологические калькуляторы.">',
+            '<meta name="description" content="Шкалы в кардиологии и кардиологические калькуляторы онлайн: GRACE, CHA₂DS₂-VASc, HAS-BLED, PESI, PRECISE-DAPT, ARC-HBR, SCORE2, СКФ CKD-EPI и другие шкалы.">'
+          )
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add calculators.html
+          git diff --cached --quiet || git commit -m "SEO: шкалы в кардиологии"
+          git push
