@@ -1,0 +1,49 @@
+name: Add eGFR calculator
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/add-egfr-calculator.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add eGFR calculator to calculators page
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('calculators.html')
+          s = p.read_text(encoding='utf-8')
+
+          nav_item = '<a href="#egfr">СКФ / клиренс креатинина</a>'
+          if nav_item not in s:
+              s = s.replace('<nav class="calcnav">', '<nav class="calcnav">' + nav_item, 1)
+
+          section = '''\n<section class="calc" id="egfr"><div class="calc-head"><div><h2>СКФ / клиренс креатинина</h2><p class="desc">Одновременный расчёт функции почек по трём формулам.</p></div><span class="badge">ПОЧКИ</span></div><p class="interpret">Введите возраст, пол, креатинин и массу тела. Результаты рассчитываются одновременно по CKD-EPI 2021, MDRD-4 и Cockcroft–Gault.</p><div class="fields"><div class="field"><label>Возраст, лет</label><input id="egAge" type="number" min="18" max="110" oninput="egfrCalc()"></div><div class="field"><label>Пол</label><select id="egSex" onchange="egfrCalc()"><option value="m">Мужчина</option><option value="f">Женщина</option></select></div><div class="field"><label>Креатинин, мкмоль/л</label><input id="egCr" type="number" min="10" max="2000" step="1" oninput="egfrCalc()"><p class="hint">Автоматически переводится в мг/дл.</p></div><div class="field"><label>Масса тела, кг</label><input id="egWt" type="number" min="20" max="300" step="0.1" oninput="egfrCalc()"><p class="hint">Необходима для формулы Cockcroft–Gault.</p></div></div><div class="actions"><button onclick="egfrCalc()">Рассчитать</button><button class="clear" onclick="clearCalc('egfr','egRes')">Очистить</button></div><div id="egRes" class="res">Введите параметры пациента.</div><p class="interpret"><b>Важно:</b> CKD-EPI 2021 и MDRD оценивают рСКФ в мл/мин/1,73 м². Cockcroft–Gault рассчитывает клиренс креатинина в мл/мин и не является рСКФ; этот показатель часто используется при выборе дозы лекарств, если именно он указан в инструкции препарата. Формулы не взаимозаменяемы у нестабильного креатинина, беременности, выраженной саркопении/кахексии и других ситуациях, где креатинин плохо отражает функцию почек.</p><p class="interpret"><b>Формулы:</b> CKD-EPI 2021 (креатинин, без расового коэффициента); MDRD-4 (IDMS); Cockcroft–Gault.</p></section>\n'''
+          marker = '<section class="calc" id="grace1">'
+          if 'id="egfr"' not in s:
+              s = s.replace(marker, section + '\n' + marker, 1)
+
+          fn = r'''function egfrStage(x){if(x>=90)return 'G1 — ≥90';if(x>=60)return 'G2 — 60–89';if(x>=45)return 'G3a — 45–59';if(x>=30)return 'G3b — 30–44';if(x>=15)return 'G4 — 15–29';return 'G5 — <15'}function egfrCalc(){const age=+document.getElementById('egAge').value,sex=document.getElementById('egSex').value,crUmol=+document.getElementById('egCr').value,wt=+document.getElementById('egWt').value,res=document.getElementById('egRes');if(!age||!crUmol||!wt){res.innerHTML='Введите возраст, креатинин и массу тела.';return}const scr=crUmol/88.4,f=sex==='f',k=f?0.7:0.9,a=f?-0.241:-0.302;const ckd=142*Math.pow(Math.min(scr/k,1),a)*Math.pow(Math.max(scr/k,1),-1.200)*Math.pow(0.9938,age)*(f?1.012:1);const mdrd=175*Math.pow(scr,-1.154)*Math.pow(age,-0.203)*(f?0.742:1);const cg=((140-age)*wt)/(72*scr)*(f?0.85:1);const fmt=x=>Math.max(0,x).toFixed(1).replace('.',',');res.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px"><div style="background:#fff;border:1px solid #dce4ec;border-radius:10px;padding:12px"><b>CKD-EPI 2021</b><br><span style="font-size:24px;font-weight:800">'+fmt(ckd)+'</span> мл/мин/1,73 м²<br><span class="hint">'+egfrStage(ckd)+'</span></div><div style="background:#fff;border:1px solid #dce4ec;border-radius:10px;padding:12px"><b>MDRD-4</b><br><span style="font-size:24px;font-weight:800">'+fmt(mdrd)+'</span> мл/мин/1,73 м²<br><span class="hint">'+egfrStage(mdrd)+'</span></div><div style="background:#fff;border:1px solid #dce4ec;border-radius:10px;padding:12px"><b>Cockcroft–Gault</b><br><span style="font-size:24px;font-weight:800">'+fmt(cg)+'</span> мл/мин<br><span class="hint">Клиренс креатинина, не индексирован на 1,73 м²</span></div></div>'}'''
+          if 'function egfrCalc()' not in s:
+              s = s.replace('function grace1(){', fn + 'function grace1(){', 1)
+
+          source_li = '<li><b>СКФ / клиренс креатинина</b> — CKD-EPI 2021 creatinine equation; MDRD-4 (IDMS); Cockcroft–Gault.</li>'
+          if source_li not in s:
+              s = s.replace('<section class="sources"><h2>Основные источники калькуляторов</h2><ul>', '<section class="sources"><h2>Основные источники калькуляторов</h2><ul>' + source_li, 1)
+
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add calculators.html
+          git diff --cached --quiet || git commit -m "Добавить калькулятор СКФ тремя формулами"
+          git push
