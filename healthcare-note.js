@@ -17,6 +17,27 @@ document.addEventListener('DOMContentLoaded',function(){
     }`;
   document.head.appendChild(style);
 
+  if(location.pathname.endsWith('/anticoagulation.html')){
+    const cascadeFix=document.createElement('style');
+    cascadeFix.textContent=`
+      body .factor.join-right:after{
+        content:"↙"!important;
+        left:-34px!important;
+        right:auto!important;
+        top:auto!important;
+        bottom:-82px!important;
+        transform:none!important;
+        font-size:34px!important;
+        line-height:34px!important;
+        color:#5f6f80!important;
+        background:#fff!important;
+        padding:0 5px!important;
+        z-index:6!important;
+      }
+    `;
+    document.head.appendChild(cascadeFix);
+  }
+
   if(!document.querySelector('.pro-note,.healthcare-note')){
     const logo=document.querySelector('.logo');
     if(logo){
