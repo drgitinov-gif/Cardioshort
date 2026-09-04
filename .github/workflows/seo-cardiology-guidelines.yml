@@ -1,0 +1,53 @@
+name: SEO cardiology guidelines
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/seo-cardiology-guidelines.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update homepage SEO metadata
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          title = 'Клинические рекомендации в кардиологии — CardioShort'
+          description = 'Кардиологические клинические рекомендации для практикующих врачей: ОКС, инфаркт миокарда, фибрилляция предсердий, ХСН, артериальная гипертензия, ТЭЛА, клапанные пороки, клинические шкалы и калькуляторы.'
+
+          s = re.sub(r'<title>.*?</title>', f'<title>{title}</title>', s, count=1, flags=re.S)
+
+          meta = f'<meta name="description" content="{description}">'
+          if re.search(r'<meta\s+name=["\']description["\']', s, flags=re.I):
+              s = re.sub(r'<meta\s+name=["\']description["\'][^>]*>', meta, s, count=1, flags=re.I)
+          else:
+              s = s.replace('</title>', '</title>\n' + meta, 1)
+
+          robots = '<meta name="robots" content="index,follow">'
+          if 'name="robots"' not in s:
+              s = s.replace(meta, meta + '\n' + robots, 1)
+
+          canonical = '<link rel="canonical" href="https://cardioshort.ru/">'
+          if 'rel="canonical"' not in s:
+              s = s.replace(robots, robots + '\n' + canonical, 1)
+
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "SEO: клинические рекомендации в кардиологии"
+          git push
