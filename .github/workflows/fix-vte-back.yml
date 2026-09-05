@@ -14,16 +14,24 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+
           p = Path('vte-prophylaxis-trials.html')
           s = p.read_text(encoding='utf-8')
           s = s.replace('href="anticoagulation.html">← Антикоагулянтная терапия</a>', 'href="index.html">← На главную</a>')
+          s = s.replace('href="topics.html">← Все клинические темы</a>', 'href="index.html">← На главную</a>')
           p.write_text(s, encoding='utf-8')
+
+          j = Path('healthcare-note.js')
+          t = j.read_text(encoding='utf-8')
+          t = t.replace("back.href = 'topics.html';", "back.href = 'index.html';")
+          t = t.replace("back.textContent = '← Все клинические темы';", "back.textContent = '← На главную';")
+          j.write_text(t, encoding='utf-8')
           PY
       - name: Commit change
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add vte-prophylaxis-trials.html
+          git add vte-prophylaxis-trials.html healthcare-note.js
           if ! git diff --cached --quiet; then
             git commit -m "Point VTE trials back button to homepage"
             git push
