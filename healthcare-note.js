@@ -36,6 +36,15 @@ document.addEventListener('DOMContentLoaded',function(){
       }
     `;
     document.head.appendChild(cascadeFix);
+
+    const renal=document.getElementById('renal');
+    if(renal){
+      renal.querySelectorAll('.organ p').forEach(function(p){
+        if(p.textContent.includes('evidence-based dose')){
+          p.innerHTML='<b>ФП + CrCl &lt;15 мл/мин или диализ:</b> ACC/AHA/ACCP/HRS 2023 (класс 2b, B-NR) допускают варфарин (МНО 2,0–3,0) или апиксабан в обоснованной дозе. <b>Диализ сам по себе не является автоматическим критерием снижения апиксабана до 2,5 мг 2 раза/сут.</b> В таблице ACC/AHA указаны 5 мг 2 раза/сут или 2,5 мг 2 раза/сут; стандартная редукция до 2,5 мг применяется при наличии ≥2 из 3 критериев: возраст ≥80 лет, масса ≤60 кг, креатинин ≥1,5 мг/дл. При этом доказательства у диализных пациентов ограничены, поэтому решение индивидуализируют по риску инсульта и кровотечения. Для других показаний схемы отличаются; сверять инструкцию РФ.';
+        }
+      });
+    }
   }
 
   if(!document.querySelector('.pro-note,.healthcare-note')){
@@ -61,15 +70,12 @@ document.addEventListener('DOMContentLoaded',function(){
       p.innerHTML='<b>PESI (Pulmonary Embolism Severity Index)</b> — прогностическая шкала для пациентов с подтверждённой острой ТЭЛА. Она оценивает риск 30-дневной общей смертности и помогает выделить пациентов низкого риска. <b>Класс I ≤65</b> — очень низкий риск (0–1,6%); <b>II 66–85</b> — низкий (1,7–3,5%); <b>III 86–105</b> — промежуточный (3,2–7,1%); <b>IV 106–125</b> — высокий (4,0–11,4%); <b>V >125</b> — очень высокий (10,0–24,5%). Классы I–II соответствуют низкому риску по PESI.';
       head.insertAdjacentElement('afterend',p);
     }
-
     const sp=document.createElement('section');
     sp.className='calc';sp.id='spesi';
     sp.innerHTML='<div class="calc-head"><div><h2>sPESI</h2><p class="desc">Упрощённый индекс тяжести ТЭЛА — быстрая оценка риска 30-дневной смертности.</p></div><span class="badge">ТЭЛА</span></div><p class="interpret"><b>sPESI (simplified PESI)</b> использует 6 признаков, каждый из которых даёт 1 балл. <b>0 баллов</b> — низкий риск (в исходной валидации около 1% 30-дневной смертности); <b>≥1 балла</b> — повышенный риск (около 10,9%). Шкала применяется для прогностической стратификации после подтверждения ТЭЛА и не заменяет оценку гемодинамической стабильности, функции ПЖ и биомаркеров.</p><div class="fields"><div class="field"><label>Критерии sPESI</label><label class="check"><input id="speAge" type="checkbox">Возраст &gt;80 лет — +1</label><label class="check"><input id="speCa" type="checkbox">Активное злокачественное новообразование — +1</label><label class="check"><input id="speCardioPulm" type="checkbox">Хроническая сердечная недостаточность и/или хроническое заболевание лёгких — +1</label></div><div class="field"><label>Показатели при оценке</label><label class="check"><input id="speHr" type="checkbox">ЧСС ≥110/мин — +1</label><label class="check"><input id="speSbp" type="checkbox">САД &lt;100 мм рт. ст. — +1</label><label class="check"><input id="speSat" type="checkbox">SpO₂ &lt;90% — +1</label></div></div><div class="actions"><button onclick="spesiCalc()">Рассчитать sPESI</button><button class="clear" onclick="clearCalc(\'spesi\',\'speRes\')">Очистить</button></div><div id="speRes" class="res">Отметьте критерии пациента.</div>';
     pesi.insertAdjacentElement('afterend',sp);
-
     const navPesi=document.querySelector('.calcnav a[href="#pesi"]');
     if(navPesi){const a=document.createElement('a');a.href='#spesi';a.textContent='sPESI';navPesi.insertAdjacentElement('afterend',a);}
-
     document.querySelectorAll('.sources li').forEach(function(li){
       if(li.textContent.includes('Wells / Revised Geneva / PESI') && !li.textContent.includes('sPESI')) li.innerHTML=li.innerHTML.replace('Wells / Revised Geneva / PESI','Wells / Revised Geneva / PESI / sPESI');
     });
