@@ -26,8 +26,8 @@ document.addEventListener('DOMContentLoaded', function () {
   if (location.pathname.endsWith('/vte-prophylaxis-trials.html')) {
     const back = document.querySelector('a.back');
     if (back) {
-      back.href = 'topics.html';
-      back.textContent = '← Все клинические темы';
+      back.href = 'index.html';
+      back.textContent = '← На главную';
     }
   }
 
